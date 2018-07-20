@@ -1,0 +1,17 @@
+{
+  "name": "@supersoccer/heimdallr",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/supersoccer/node-heimdallr",
+  "author": "hkyo89 <hkyo89@yahoo.co.jp>",
+  "license": "MIT",
+  "dependencies": {
+    "@supersoccer/dwarfs": "^1.0.0",
+    "@supersoccer/template": "^1.0.0",
+    "@supersoccer/tools": "^1.0.0",
+    "@supersoccer/yggdrasil": "^1.0.0",
+    "config": "^1.30.0",
+    "lodash": "^4.17.10",
+    "request": "^2.87.0"
+  }
+}
