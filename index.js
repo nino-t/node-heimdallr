@@ -1,18 +1,14 @@
-const $ = require('config')
+const Misty = require('@supersoccer/misty')
+
+const $ = Misty.Config
+const t = Misty.Tools
 const _ = require('lodash')
-const t = require('@supersoccer/tools')
-const template = require('@supersoccer/template')
 const request = require('request')
 
-const Cache = require('@supersoccer/yggdrasil')
-const Driver = require('@supersoccer/dwarfs')
-const cache = new Cache($.cache.app.misty)
+const Cache = Misty.Yggdrasil
+const Driver = Misty.Dwarfs
+const cache = new Cache($.app.name)
 
-const tpl = {
-  login: template.load('accounts/login'),
-  oauth: template.load('accounts/oauth'),
-  profile: template.load('accounts/profile')
-}
 
 class Heimdallr {
   constructor () {
@@ -20,11 +16,6 @@ class Heimdallr {
     this.token = this.token.bind(this)
     this.identity = this.identity.bind(this)
     this.access = this.access.bind(this)
-    this.index = this.index.bind(this)
-    this.login = this.login.bind(this)
-    this.oauth = this.oauth.bind(this)
-    this.logout = this.logout.bind(this)
-
     this.authUrl = this.getAuthUrl()
   }
 
@@ -36,11 +27,11 @@ class Heimdallr {
     // hitch
     res.locals.app = $.app
 
-    if ($.passport.whitelist.indexOf(req.path) >= 0) {
+    if ($.heimdallr.whitelist.indexOf(req.path) >= 0) {
       return next()
     }
 
-    const accessToken = req.cookies[$.auth.cookie]
+    const accessToken = req.cookies[$.heimdallr.cookie]
 
     if (_.isUndefined(accessToken)) {
       return res.redirect($.app.loginUrl)
@@ -83,17 +74,17 @@ class Heimdallr {
     }
 
     request.post({
-      url: $.auth.host.token,
+      url: $.heimdallr.token,
       json: {
         app_key: $.app.appKey,
         app_secret: $.app.appSecret,
         grant_type: 'authorization_code',
-        redirect_uri: $.auth.callback,
+        redirect_uri: $.heimdallr.callback,
         code: req.query.code
       }
     }, (err, _res, body) => {
       if (!err && _res.statusCode === 200) {
-        res.cookie($.auth.cookie, body.access_token)
+        res.cookie($.heimdallr.cookie, body.access_token)
         // Continue to identity middleware
         res.locals.accessToken = body.access_token
         next()
@@ -106,7 +97,7 @@ class Heimdallr {
 
   identity (req, res, next) {
     request.get({
-      url: $.auth.host.identity,
+      url: $.heimdallr.identity,
       headers: {
         Authorization: t.authHeader(res)
       }
@@ -140,12 +131,12 @@ class Heimdallr {
   }
 
   access (req, res, next) {
-    if ($.passport.whitelist.indexOf(req.path) >= 0) {
+    if ($.heimdallr.whitelist.indexOf(req.path) >= 0) {
       return next()
     }
 
     Driver.get({
-      app: 'Misty',
+      app: $.app.name,
       key: this.key(res, 'iam-raw'),
       query: {
         sql: 'SELECT * FROM iam WHERE user_id = ? AND deleted_at IS NULL',
@@ -165,19 +156,19 @@ class Heimdallr {
       const _IAM = {}
       _IAM.roles = []
       _IAM.role = {}
-      _IAM.projects = []
+      _IAM.apps = []
 
       if (IAM.superuser) {
         _IAM.superuser = IAM.superuser
-        _IAM.projects = res.locals.projects
+        _IAM.apps = res.locals.apps
 
-        for (let role of $.iam.roles) {
+        for (let role of $.heimdallr.roles) {
           _IAM.role[role] = true
         }
 
         _IAM.permission = 15
       } else {
-        const _roles = _.find(IAM.access, { projectId: res.locals.projectId })
+        const _roles = _.find(IAM.access, { appId: res.locals.appId })
         if (_roles) {
           _IAM.roles = _roles.modules
 
@@ -191,11 +182,11 @@ class Heimdallr {
 
         if (IAM.access) {
           if (IAM.access.length > 0) {
-            for (let projectAccess of IAM.access) {
-              const project = _.find(res.locals.projects, { identifier: projectAccess.projectId })
+            for (let appAccess of IAM.access) {
+              const app = _.find(res.locals.apps, { identifier: appAccess.appId })
 
-              if (project) {
-                _IAM.projects.push(project)
+              if (app) {
+                _IAM.apps.push(app)
               }
             }
           }
@@ -243,7 +234,7 @@ class Heimdallr {
         }
 
         for (let _IAM of rawIAM) {
-          const projectId = _IAM.project_id
+          const appId = _IAM.app_id
           let access
 
           try {
@@ -252,7 +243,7 @@ class Heimdallr {
 
           if (access.length > 0) {
             const accessTmp = {
-              projectId: projectId,
+              appId: appId,
               modules: []
             }
 
@@ -290,37 +281,12 @@ class Heimdallr {
     const qs = {
       app_key: $.app.appKey,
       response_type: 'code',
-      redirect_uri: $.auth.callback,
-      scope: $.auth.scope.USERS__USERS_PROFILE_READ,
-      state: $.auth.state
+      redirect_uri: $.heimdallr.callback,
+      scope: $.heimdallr.scope.AUTH__USERS__USERS_PROFILE_READ,
+      state: $.heimdallr.state
     }
 
-    return t.url($.auth.host.oauth, qs)
-  }
-
-  index (req, res, next) {
-    res.sendStatus(200)
-  }
-
-  oauth (req, res, next) {
-    // res.redirect($.app.hostname)
-    res.marko(tpl.oauth)
-  }
-
-  login (req, res, next) {
-    res.marko(tpl.login, {
-      authUrl: this.authUrl
-    })
-  }
-
-  logout (req, res, next) {
-    res.clearCookie($.auth.cookie)
-    cache.del(this.key(res, 'session'))
-    res.redirect($.app.hostname)
-  }
-
-  profile (req, res, next) {
-    res.marko(tpl.profile)
+    return t.url($.heimdallr.auth, qs)
   }
 }
 
