@@ -1,6 +1,6 @@
 {
   "name": "@supersoccer/heimdallr",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "main": "index.js",
   "repository": "https://github.com/supersoccer/node-heimdallr",
   "author": "hkyo89 <hkyo89@yahoo.co.jp>",
@@ -10,8 +10,6 @@
   },
   "dependencies": {
     "@supersoccer/misty": "*",
-    "config": "^1.30.0",
-    "lodash": "^4.17.10",
     "request": "^2.87.0"
   },
   "devDependencies": {

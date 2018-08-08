@@ -1,53 +1,54 @@
-const Misty = require('@supersoccer/misty')
-
-const $ = Misty.Config
-const t = Misty.Tools
-const _ = require('lodash')
+const { Config, Utils, Yggdrasil, Dwarfs } = require('@supersoccer/misty')
+const _ = Utils.Lodash
 const request = require('request')
-
-const Cache = Misty.Yggdrasil
-const Driver = Misty.Dwarfs
-const cache = new Cache($.app.name)
-
+const cache = new Yggdrasil(Config.App.name)
 
 class Heimdallr {
-  constructor () {
-    this.passport = this.passport.bind(this)
-    this.token = this.token.bind(this)
-    this.identity = this.identity.bind(this)
-    this.access = this.access.bind(this)
-    this.authUrl = this.getAuthUrl()
+  static get authUrl () {
+    return Heimdallr.getAuthUrl()
+  }
+
+  static authHeader (res) {
+    return `Bearer ${res.locals.accessToken}`
+  }
+
+  static accessToken (res) {
+    return res.locals.accessToken
+  }
+
+  static accessBinary (n) {
+    return ('0000' + (n >>> 0).toString(2)).slice(-4)
   }
 
   /**
    * Validate user's authorization
    * @param {middleware}
    */
-  passport (req, res, next) {
+  static passport (req, res, next) {
     // hitch
-    res.locals.app = $.app
+    res.locals.config = Config
 
-    if ($.heimdallr.whitelist.indexOf(req.path) >= 0) {
+    if (Config.Heimdallr.whitelist.indexOf(req.path) >= 0) {
       return next()
     }
 
-    const accessToken = req.cookies[$.heimdallr.cookie]
+    const accessToken = req.cookies[Config.Heimdallr.cookie]
 
     if (_.isUndefined(accessToken)) {
-      return res.redirect($.app.loginUrl)
-      // return res.redirect(this.authUrl)
+      return res.redirect(Config.Heimdallr.login)
+      // return res.redirect(Heimdallr.authUrl)
     }
     // Store access token widely during runtime
     res.locals.accessToken = accessToken
 
-    const key = this.key(res, 'session')
+    const key = Heimdallr.key(res, 'session')
 
     cache.get(key, true).then(identity => {
       if (_.isNull(identity)) {
-        return res.redirect($.app.loginUrl)
+        return res.redirect(Config.Heimdallr.login)
       }
 
-      res.locals.sessionKey = this.key(res, 'session')
+      res.locals.sessionKey = Heimdallr.key(res, 'session')
       res.locals.identity = identity
 
       next()
@@ -61,30 +62,30 @@ class Heimdallr {
     })
   }
 
-  key (res, prefix) {
-    const at = t.accessToken(res)
+  static key (res, prefix) {
+    const at = Heimdallr.accessToken(res)
     const key = at.slice(0, 4) + at.slice(Math.floor(at.length / 2), Math.floor(at.length / 2) + 4) + at.slice(-4)
     return `${prefix}:${key}`
   }
 
-  token (req, res, next) {
+  static token (req, res, next) {
     if (_.isUndefined(req.query.code)) {
       res.status(403)
       return res.send('[74001] Access forbidden.')
     }
 
     request.post({
-      url: $.heimdallr.token,
+      url: Config.Heimdallr.token,
       json: {
-        app_key: $.app.appKey,
-        app_secret: $.app.appSecret,
+        app_key: Config.Heimdallr.key,
+        app_secret: Config.Heimdallr.secret,
         grant_type: 'authorization_code',
-        redirect_uri: $.heimdallr.callback,
+        redirect_uri: Config.Heimdallr.callback,
         code: req.query.code
       }
     }, (err, _res, body) => {
       if (!err && _res.statusCode === 200) {
-        res.cookie($.heimdallr.cookie, body.access_token)
+        res.cookie(Config.Heimdallr.cookie, body.access_token)
         // Continue to identity middleware
         res.locals.accessToken = body.access_token
         next()
@@ -95,11 +96,11 @@ class Heimdallr {
     })
   }
 
-  identity (req, res, next) {
+  static identity (req, res, next) {
     request.get({
-      url: $.heimdallr.identity,
+      url: Config.Heimdallr.identity,
       headers: {
-        Authorization: t.authHeader(res)
+        Authorization: Heimdallr.authHeader(res)
       }
     }, (err, _res, body) => {
       if (!err && _res.statusCode === 200) {
@@ -115,10 +116,10 @@ class Heimdallr {
           firstName: body.first_name,
           lastName: body.last_name,
           email: body.email,
-          token: t.accessToken(res)
+          token: Heimdallr.accessToken(res)
         }
 
-        const key = this.key(res, 'session')
+        const key = Heimdallr.key(res, 'session')
 
         cache.set(key, identity)
         res.locals.identity = identity
@@ -130,14 +131,14 @@ class Heimdallr {
     })
   }
 
-  access (req, res, next) {
-    if ($.heimdallr.whitelist.indexOf(req.path) >= 0) {
+  static access (req, res, next) {
+    if (Config.Heimdallr.whitelist.indexOf(req.path) >= 0) {
       return next()
     }
 
-    Driver.get({
-      app: $.app.name,
-      key: this.key(res, 'iam-raw'),
+    Dwarfs.get({
+      app: Config.App.name,
+      key: Heimdallr.key(res, 'iam-raw'),
       query: {
         sql: 'SELECT * FROM iam WHERE user_id = ? AND deleted_at IS NULL',
         values: [
@@ -145,7 +146,7 @@ class Heimdallr {
         ]
       }
     }).then(rawIAM => {
-      return this.parseIAM(rawIAM, res)
+      return Heimdallr.parseIAM(rawIAM, res)
     }).then(IAM => {
       if (_.isUndefined(IAM)) {
         res.status(403)
@@ -162,7 +163,7 @@ class Heimdallr {
         _IAM.superuser = IAM.superuser
         _IAM.apps = res.locals.apps
 
-        for (let role of $.heimdallr.roles) {
+        for (let role of Config.IAM.roles) {
           _IAM.role[role] = true
         }
 
@@ -203,17 +204,17 @@ class Heimdallr {
     })
   }
 
-  session (req, res, next) {
+  static session (req, res, next) {
     next()
   }
 
-  parseIAM (rawIAM, res) {
+  static parseIAM (rawIAM, res) {
     if (_.isUndefined(rawIAM)) {
       return Promise.resolve()
     }
 
     return new Promise((resolve, reject) => {
-      const key = this.key(res, 'iam')
+      const key = Heimdallr.key(res, 'iam')
 
       cache.get(key, true).then(IAM => {
         if (IAM) {
@@ -253,8 +254,8 @@ class Heimdallr {
                 roles: {}
               }
 
-              const names = $.iam.roles
-              const binary = t.getAccessBinary(moduleAccess)
+              const names = Config.IAM.roles
+              const binary = Heimdallr.getAccessBinary(moduleAccess)
               const binaries = binary.split('')
 
               for (let i in names) {
@@ -277,17 +278,17 @@ class Heimdallr {
     })
   }
 
-  getAuthUrl () {
+  static getAuthUrl () {
     const qs = {
-      app_key: $.app.appKey,
+      app_key: Config.Heimdallr.key,
       response_type: 'code',
-      redirect_uri: $.heimdallr.callback,
-      scope: $.heimdallr.scope.AUTH__USERS__USERS_PROFILE_READ,
-      state: $.heimdallr.state
+      redirect_uri: Config.Heimdallr.callback,
+      scope: Config.Heimdallr.scope.AUTH__USERS__USERS_PROFILE_READ,
+      state: Config.Heimdallr.state
     }
 
-    return t.url($.heimdallr.auth, qs)
+    return Utils.url.build(Config.Heimdallr.auth, qs)
   }
 }
 
-module.exports = new Heimdallr()
+module.exports = Heimdallr

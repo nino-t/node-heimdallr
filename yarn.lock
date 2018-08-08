@@ -20,10 +20,10 @@
     mysql "^2.16.0"
 
 "@supersoccer/heimdallr@*":
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/@supersoccer/heimdallr/-/heimdallr-1.1.1.tgz#5ae48133aefe5ba9d966f1178c86491e7d27f82a"
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/@supersoccer/heimdallr/-/heimdallr-1.1.2.tgz#f3a83a344ea410c6b407067123f97ddfd3dd27e1"
   dependencies:
-    "@supersoccer/misty" "^1.0.1"
+    "@supersoccer/misty" "*"
     config "^1.30.0"
     lodash "^4.17.10"
     request "^2.87.0"
@@ -32,23 +32,22 @@
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/@supersoccer/minako/-/minako-1.0.0.tgz#da4c589f32719dfcc1f24d4bd77f9a70c289b2bc"
 
-"@supersoccer/misty@*", "@supersoccer/misty@^1.0.1":
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/@supersoccer/misty/-/misty-1.0.2.tgz#b56ed07cf4f8c2c899117f48dc228881af04ec92"
+"@supersoccer/misty@*":
+  version "1.2.11"
+  resolved "https://registry.yarnpkg.com/@supersoccer/misty/-/misty-1.2.11.tgz#a8658631bc2f58db73aca08ed1aa230523c1883d"
   dependencies:
     "@supersoccer/bifrost" "*"
     "@supersoccer/dwarfs" "*"
     "@supersoccer/heimdallr" "*"
     "@supersoccer/mystique" "*"
-    "@supersoccer/path" "*"
-    "@supersoccer/template" "*"
-    "@supersoccer/tools" "*"
     "@supersoccer/yggdrasil" "*"
     config "^2.0.0"
     cookie-parser "^1.4.3"
     csurf "^1.9.0"
     express "^4.16.3"
+    lodash "^4.17.10"
     marko "^4.12.3"
+    moment "^2.22.2"
     serve-static "^1.13.2"
 
 "@supersoccer/mystique@*":
@@ -56,25 +55,6 @@
   resolved "https://registry.yarnpkg.com/@supersoccer/mystique/-/mystique-1.1.3.tgz#0948f41480ba2972ebbb449aeebde991e5c4ffa0"
   dependencies:
     "@supersoccer/misty" "*"
-
-"@supersoccer/path@*":
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/@supersoccer/path/-/path-1.1.1.tgz#dd4101e7ba04c315b1f5468964d7f6dfcc53fe82"
-
-"@supersoccer/template@*":
-  version "1.1.4"
-  resolved "https://registry.yarnpkg.com/@supersoccer/template/-/template-1.1.4.tgz#50bbd9903b9a83d31b1147a6414ce6e20b486d2e"
-  dependencies:
-    "@supersoccer/misty" "*"
-
-"@supersoccer/tools@*":
-  version "1.1.4"
-  resolved "https://registry.yarnpkg.com/@supersoccer/tools/-/tools-1.1.4.tgz#ed3fc62afb51805f689132de87a8626848bd2d65"
-  dependencies:
-    config "^1.30.0"
-    lodash "^4.17.10"
-    moment "^2.22.2"
-    querystring "^0.2.0"
 
 "@supersoccer/yggdrasil@*":
   version "1.1.2"
@@ -114,8 +94,10 @@ array-flatten@1.1.1:
   resolved "https://registry.yarnpkg.com/array-flatten/-/array-flatten-1.1.1.tgz#9a5f699051b1e7073328f2a008968b64ea2955d2"
 
 asn1@~0.2.3:
-  version "0.2.3"
-  resolved "https://registry.yarnpkg.com/asn1/-/asn1-0.2.3.tgz#dac8787713c9966849fc8180777ebe9c1ddf3b86"
+  version "0.2.4"
+  resolved "https://registry.yarnpkg.com/asn1/-/asn1-0.2.4.tgz#8d2475dfab553bb33e77b54e59e880bb8ce23136"
+  dependencies:
+    safer-buffer "~2.1.0"
 
 assert-plus@1.0.0, assert-plus@^1.0.0:
   version "1.0.0"
@@ -134,8 +116,8 @@ aws-sign2@~0.7.0:
   resolved "https://registry.yarnpkg.com/aws-sign2/-/aws-sign2-0.7.0.tgz#b46e890934a9591f2d2f6f86d7e6a9f1b3fe76a8"
 
 aws4@^1.6.0:
-  version "1.7.0"
-  resolved "https://registry.yarnpkg.com/aws4/-/aws4-1.7.0.tgz#d4d0e9b9dbfca77bf08eeb0a8a471550fe39e289"
+  version "1.8.0"
+  resolved "https://registry.yarnpkg.com/aws4/-/aws4-1.8.0.tgz#f0e003d9ca9e7f59c7a508945d7b2ef9a04a542f"
 
 babylon@7.0.0-beta.19:
   version "7.0.0-beta.19"
@@ -683,8 +665,8 @@ marked@~0.3.6:
   resolved "https://registry.yarnpkg.com/marked/-/marked-0.3.19.tgz#5d47f709c4c9fc3c216b6d46127280f40b39d790"
 
 marko@^4.12.3:
-  version "4.12.3"
-  resolved "https://registry.yarnpkg.com/marko/-/marko-4.12.3.tgz#5e04c47fdc815cf63fafb14d2c0f21b4daaa6957"
+  version "4.12.4"
+  resolved "https://registry.yarnpkg.com/marko/-/marko-4.12.4.tgz#7daa4530cec4485a98308a160276fa6a7f374ebe"
   dependencies:
     app-module-path "^2.2.0"
     argly "^1.0.0"
@@ -857,10 +839,6 @@ qs@~6.5.1:
   version "6.5.2"
   resolved "https://registry.yarnpkg.com/qs/-/qs-6.5.2.tgz#cb3ae806e8740444584ef154ce8ee98d403f3e36"
 
-querystring@^0.2.0:
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/querystring/-/querystring-0.2.0.tgz#b209849203bb25df820da756e747005878521620"
-
 random-bytes@~1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/random-bytes/-/random-bytes-1.0.0.tgz#4f68a1dc0ae58bd3fb95848c30324db75d64360b"
@@ -880,8 +858,8 @@ raptor-json@^1.0.1:
     raptor-strings "^1.0.0"
 
 raptor-polyfill@^1.0.0, raptor-polyfill@^1.0.1, raptor-polyfill@^1.0.2:
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/raptor-polyfill/-/raptor-polyfill-1.0.2.tgz#6575bce762540d844056d71cef11662488f513ed"
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/raptor-polyfill/-/raptor-polyfill-1.1.0.tgz#8d2de1298c59ee804750b6ff9c687de62ef21e6a"
 
 raptor-promises@^1.0.1:
   version "1.0.3"
@@ -1000,7 +978,7 @@ safe-buffer@5.1.2, safe-buffer@^5.0.1, safe-buffer@^5.1.1, safe-buffer@~5.1.0, s
   version "5.1.2"
   resolved "https://registry.yarnpkg.com/safe-buffer/-/safe-buffer-5.1.2.tgz#991ec69d296e0313747d59bdfd2b745c35f8828d"
 
-safer-buffer@^2.0.2, safer-buffer@^2.1.0:
+safer-buffer@^2.0.2, safer-buffer@^2.1.0, safer-buffer@~2.1.0:
   version "2.1.2"
   resolved "https://registry.yarnpkg.com/safer-buffer/-/safer-buffer-2.1.2.tgz#44fa161b0187b9549dd84bb91802f9bd8385cd6a"
 
