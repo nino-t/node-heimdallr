@@ -1,6 +1,6 @@
 {
   "name": "@supersoccer/heimdallr",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "main": "index.js",
   "repository": "https://github.com/supersoccer/node-heimdallr",
   "author": "hkyo89 <hkyo89@yahoo.co.jp>",
