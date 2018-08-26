@@ -255,7 +255,7 @@ class Heimdallr {
               }
 
               const names = Config.IAM.roles
-              const binary = Heimdallr.getAccessBinary(moduleAccess)
+              const binary = Heimdallr.accessBinary(moduleAccess)
               const binaries = binary.split('')
 
               for (let i in names) {
