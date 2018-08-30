@@ -1,4 +1,4 @@
-const { Config, Utils, Yggdrasil, Dwarfs } = require('@supersoccer/misty')
+const { Config, Utils, Yggdrasil, Dwarfs } = require('@supersoccer/misty-loader')
 const _ = Utils.Lodash
 const request = require('request')
 const cache = new Yggdrasil(Config.App.name)
