@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@supersoccer/misty": "*",
+    "@supersoccer/misty-loader": "*",
     "request": "^2.87.0"
   },
   "devDependencies": {
