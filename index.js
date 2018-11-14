@@ -1,5 +1,7 @@
 const { Config, Utils, Yggdrasil, Dwarfs, Log } = require('@supersoccer/misty-loader')
+const jwt = require('jsonwebtoken')
 const _ = Utils.Lodash
+const moment = Utils.Moment
 const request = require('request')
 const cache = new Yggdrasil(Config.App.name)
 
@@ -74,7 +76,13 @@ class Heimdallr {
 
   static key (res, prefix) {
     const at = Heimdallr.accessToken(res.locals.accessToken)
+    const identity = jwt.decode(at)
     const key = at.slice(0, 4) + at.slice(Math.floor(at.length / 2), Math.floor(at.length / 2) + 4) + at.slice(-4)
+
+    if (!_.isUndefined(identity)) {
+      return `${prefix}:${identity.sub}:${key}`
+    }
+
     return `${prefix}:${key}`
   }
 
@@ -241,7 +249,8 @@ class Heimdallr {
             userId: identity.user_id,
             firstName: identity.first_name,
             lastName: identity.last_name,
-            email: identity.email
+            email: identity.email,
+            logedIn_at: moment().format('YYYY-MM-DD HH:mm:ss')
           },
           superuser: identity.superuser === 1,
           access: []
