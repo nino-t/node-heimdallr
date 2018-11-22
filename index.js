@@ -181,35 +181,28 @@ class Heimdallr {
 
       if (IAM.superuser) {
         _IAM.superuser = IAM.superuser
-        _IAM.apps = res.locals.apps
-
-        for (let role of Config.IAM.roles) {
-          _IAM.role[role] = true
-        }
-
         _IAM.permission = 15
-      } else {
-        const _roles = _.find(IAM.access, { appId: res.locals.appId })
+      }
 
-        if (_roles) {
-          _IAM.roles = _roles.modules
-          
-          const _role = _.find(_IAM.roles, { moduleId: moduleId })
-          if (_role) {
-            _IAM.permission = _role.roles.permission
-            _IAM.role = _role.roles
-            delete _IAM.role.permission
-          }
+      const _roles = _.find(IAM.access, { appId: res.locals.appId })
+      if (_roles) {
+        _IAM.roles = _roles.modules
+        
+        const _role = _.find(_IAM.roles, { moduleId: moduleId })
+        if (_role) {
+          _IAM.permission = _role.roles.permission
+          _IAM.role = _role.roles
+          // delete _IAM.role.permission
         }
+      }
 
-        if (IAM.access) {
-          if (IAM.access.length > 0) {
-            for (let appAccess of IAM.access) {
-              const app = _.find(res.locals.apps, { identifier: appAccess.appId })
+      if (IAM.access) {
+        if (IAM.access.length > 0) {
+          for (let appAccess of IAM.access) {
+            const app = _.find(res.locals.apps, { identifier: appAccess.appId })
 
-              if (app) {
-                _IAM.apps.push(app)
-              }
+            if (app) {
+              _IAM.apps.push(app)
             }
           }
         }
@@ -254,6 +247,27 @@ class Heimdallr {
           },
           superuser: identity.superuser === 1,
           access: []
+        }
+
+        if (IAM.superuser) {
+          rawIAM = []
+          const apps = res.locals.apps
+          apps.map(app => {
+            let appData = {
+              app_id: app.identifier,
+              access: []
+            }
+
+            JSON.parse(app.modules).map(moduleId => {
+              appData.access.push([
+                +(moduleId),
+                15
+              ])
+            })
+
+            appData.access = JSON.stringify(appData.access)
+            rawIAM.push(appData)
+          })
         }
 
         for (let _IAM of rawIAM) {
