@@ -128,12 +128,6 @@ class Heimdallr {
       Config.Heimdallr.callback = `${protocol}://${headers.host}${Config.Heimdallr.callbackPath}`
     }
 
-    console.log('Config.Heimdallr.token', Config.Heimdallr.token)
-    console.log('Config.Heimdallr.key', Config.Heimdallr.key)
-    console.log('Config.Heimdallr.secret', Config.Heimdallr.secret)
-    console.log('Config.Heimdallr.callback', res.locals.Utils.Url.build(Config.Heimdallr.callback))
-    console.log('req.query.code', req.query.code)
-
     request.post({
       url: Config.Heimdallr.token,
       json: {
@@ -142,12 +136,13 @@ class Heimdallr {
         grant_type: 'authorization_code',
         redirect_uri: res.locals.Utils.Url.build(Config.Heimdallr.callback),
         code: req.query.code
+      },
+      headers: {
+        connection: 'Close'
       }
     }, (err, _res, body) => {
-      console.log('_res', _res)
       console.log('Log err', err)
       console.log('Log body', body)
-      console.log('_res.statusCode', _res.statusCode)
 
       if (!err && _res.statusCode === 200) {
         res.cookie(Heimdallr.cookieName(res), body.access_token)
