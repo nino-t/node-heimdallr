@@ -144,8 +144,10 @@ class Heimdallr {
         code: req.query.code
       }
     }, (err, _res, body) => {
+      console.log('_res', _res)
       console.log('Log err', err)
       console.log('Log body', body)
+      console.log('_res.statusCode', _res.statusCode)
 
       if (!err && _res.statusCode === 200) {
         res.cookie(Heimdallr.cookieName(res), body.access_token)
