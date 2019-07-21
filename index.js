@@ -5,21 +5,6 @@ const moment = Utils.Moment
 const request = require('request')
 const cache = new Yggdrasil(Config.App.name)
 
-function getArrayOfApps (apps) {
-  let array = []
-  apps.map(app => {
-    let hosts = app.host
-    hosts = hosts.split(' ')
-    if (!_.isUndefined(hosts) && !_.isUndefined(hosts[0])) {
-      array.push(hosts[0])
-    } else {
-      array.push(app.host)
-    }
-  })
-
-  return array
-}
-
 class Heimdallr {
   static utils (req, res) {
     return {
@@ -50,15 +35,9 @@ class Heimdallr {
     // hitch
     res.locals.config = Config
 
-    if (Config.Heimdallr.whitelist.indexOf(req.path) >= 0) {
+    const __config = Heimdallr.__heimdallrConfig(req, res)
+    if (__config.whitelist.indexOf(req.path) >= 0) {
       return next()
-    }
-
-    const protocol = req.protocol
-    const headers = req.headers
-    
-    if (getArrayOfApps(res.locals.apps).indexOf(headers.host) >= 0) {
-      res.locals.Utils.Heimdallr.loginUrl = `${protocol}://${headers.host}${Config.Heimdallr.loginPath}`
     }
 
     const accessToken = req.cookies[Heimdallr.cookieName(res)]
@@ -93,14 +72,8 @@ class Heimdallr {
   }
 
   static loginUrl (req, res) {
-    const protocol = req.protocol
-    const headers = req.headers
-    
-    if (getArrayOfApps(res.locals.apps).indexOf(headers.host) >= 0) {
-      Config.Heimdallr.login = `${protocol}://${headers.host}${Config.Heimdallr.loginPath}`
-    }
- 
-    return res.locals.Utils.Url.build(Config.Heimdallr.login)
+    const __config = Heimdallr.__heimdallrConfig(req, res)
+    return res.locals.Utils.Url.build(__config.login)
   }
 
   static key (res, prefix) {
@@ -116,25 +89,19 @@ class Heimdallr {
   }
 
   static token (req, res, next) {
+    const __config = Heimdallr.__heimdallrConfig(req, res)
     if (_.isUndefined(req.query.code)) {
       res.status(403)
       return res.send('[74001] Access forbidden.')
     }
 
-    const protocol = req.protocol
-    const headers = req.headers
-    
-    if (getArrayOfApps(res.locals.apps).indexOf(headers.host) >= 0) {
-      Config.Heimdallr.callback = `${protocol}://${headers.host}${Config.Heimdallr.callbackPath}`
-    }
-
     Heimdallr.requestToken(req, res)
       .then(access_token => {
         request.post({
-          url: `${Config.Heimdallr.authHost}${Config.Heimdallr.extendTokenURL}`,
+          url: `${__config.host}/_/v1/token/extend`,
           json: {
-            app_key: Config.Heimdallr.key,
-            app_secret: Config.Heimdallr.secret,
+            app_key: __config.key,
+            app_secret: __config.secret,
             access_token: access_token,
             expires_in: 432000
           },
@@ -149,7 +116,7 @@ class Heimdallr {
             next()
           } else {
             res.status(403)
-            res.send('[74004] Access forbidden.')
+            res.send('[74041] Access forbidden.')
           }
         })
       })
@@ -161,8 +128,9 @@ class Heimdallr {
   }
 
   static identity (req, res, next) {
+    const __config = Heimdallr.__heimdallrConfig(req, res)
     request.get({
-      url: Config.Heimdallr.identity,
+      url: __config.identity,
       headers: {
         Authorization: Heimdallr.authHeader(res.locals.accessToken)
       }
@@ -196,7 +164,8 @@ class Heimdallr {
   }
 
   static access (req, res, next) {
-    if (Config.Heimdallr.whitelist.indexOf(req.path) >= 0) {
+    const __config = Heimdallr.__heimdallrConfig(req, res)
+    if (__config.whitelist.indexOf(req.path) >= 0) {
       return next()
     }
 
@@ -377,43 +346,39 @@ class Heimdallr {
   }
 
   static authUrl (req, res) {
-    const protocol = req.protocol
-    const headers = req.headers
-    
-    if (getArrayOfApps(res.locals.apps).indexOf(headers.host) >= 0) {
-      Config.Heimdallr.callback = `${protocol}://${headers.host}${Config.Heimdallr.callbackPath}`
-    }
-
+    const __config = Heimdallr.__heimdallrConfig(req, res)
     const qs = {
-      app_key: Config.Heimdallr.key,
+      app_key: __config.key,
       response_type: 'code',
-      redirect_uri: res.locals.Utils.Url.build(Config.Heimdallr.callback),
-      scope: Config.Heimdallr.scope.AUTH__USERS__USERS_PROFILE_READ,
-      state: Config.Heimdallr.state
+      redirect_uri: res.locals.Utils.Url.build(__config.callback),
+      scope: __config.scope.AUTH__USERS__USERS_PROFILE_READ,
+      state: __config.state
     }
 
-    return res.locals.Utils.Url.build(Config.Heimdallr.auth, qs)
+    return res.locals.Utils.Url.build(__config.auth, qs)
   }
 
   static cookieName (res) {
     let cookieName = Config.Heimdallr.cookie 
 
     if (res.locals.appLock) {
-      cookieName += res.locals.appId
+      cookieName += `_${res.locals.appId}`
     }
 
     return cookieName
   }
 
   static requestToken (req, res) {
+    const __config = Heimdallr.__heimdallrConfig(req, res)
+
     return new Promise((resolve, reject) => {
       request.post({
-        url: Config.Heimdallr.token,
+        url: __config.token,
         json: {
-          app_key: Config.Heimdallr.key,
-          app_secret: Config.Heimdallr.secret,
+          app_key: __config.key,
+          app_secret: __config.secret, 
           grant_type: 'authorization_code',
-          redirect_uri: res.locals.Utils.Url.build(Config.Heimdallr.callback),
+          redirect_uri: res.locals.Utils.Url.build(__config.callback),
           code: req.query.code
         },
         headers: {
@@ -427,6 +392,49 @@ class Heimdallr {
         }
       })
     })
+  }
+
+  static __heimdallrConfig (req, res) {
+    const __configHeimdallr    = Object.assign({}, Config.Heimdallr)
+    let __config               = null
+
+    let lockApp     = false
+    let appSelected = null
+    const __apps    = res.locals.apps
+    let xURL        = null
+
+    const headers   = req.headers
+    const protocol  = req.protocol
+
+    if (!_.isUndefined(headers['x-url'])) {
+      xURL                = headers['x-url']
+
+      const __appSelected = __apps.find(x => ((x.host).split(' ')).indexOf(xURL) >= 0)
+
+      if (!_.isUndefined(__appSelected)) {
+        lockApp           = true
+        appSelected       = __appSelected.identifier
+      }
+    }
+    
+    if (lockApp) {
+      const __loadConfigAPP = Config.configApplication
+      if (!_.isUndefined(__loadConfigAPP[appSelected]) && !_.isUndefined(__loadConfigAPP[appSelected]['Heimdallr'])) {
+        const __thisConfig  = __loadConfigAPP[appSelected].Heimdallr
+        __config            = Object.assign(__configHeimdallr, __thisConfig)
+        __config.login      = Config.Heimdallr.login.replace(Config.App.host, `${protocol}://${xURL}`)
+        __config.auth       = Config.Heimdallr.auth.replace(Config.Heimdallr.host, __thisConfig.host)
+        __config.token      = Config.Heimdallr.token.replace(Config.Heimdallr.host, __thisConfig.host)
+        __config.identity   = Config.Heimdallr.identity.replace(Config.Heimdallr.host, __thisConfig.host)
+        __config.callback   = Config.Heimdallr.callback.replace(Config.App.host, `${protocol}://${xURL}`)
+      }
+    }
+
+    if (_.isNull(__config)) {
+      __config = Config.Heimdallr
+    }
+
+    return __config
   }
 }
 
