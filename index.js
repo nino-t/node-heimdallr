@@ -178,7 +178,56 @@ class Heimdallr {
           res.locals.identity.userId
         ]
       }
-    }).then(rawIAM => {
+    }).then(async (rawIAM) => {
+      const iamRoles = await Dwarfs.get({
+        app: Config.App.name,
+        key: 'iam-roles',
+        query: {
+          sql: 'SELECT id, app_id, name FROM roles WHERE deleted_at IS NULL'
+        }
+      })
+
+      const iamTempAccess =  await Dwarfs.runQuery({
+        sql: 'SELECT access_role_id, app_id FROM temp_iam_access_role WHERE user_id = ? AND deleted_at IS NULL',
+        values: [
+          res.locals.identity.userId
+        ]
+      })
+
+      const firstModuleGroup =  await Dwarfs.runQuery({
+        sql: 'SELECT modules FROM module_groups WHERE id = 1 AND deleted_at IS NULL'
+      })
+
+      const idRoleAccess = _.reduce(iamTempAccess, function(result, value) {
+        const x = JSON.parse(value.access_role_id)
+        result = result.concat(x)
+        return result
+      }, [])
+      
+      let iamAccessRole = []
+      if (!_.isEmpty(idRoleAccess)) {
+        iamAccessRole = await Dwarfs.runQuery({
+          sql: 'SELECT id, access FROM access_role WHERE id IN (?) AND deleted_at IS NULL',
+          values: [
+            idRoleAccess
+          ]
+        })
+      }
+
+      return Object.assign({
+        rawIAM: rawIAM,
+        iamRoles: iamRoles,
+        iamAccessRole: iamAccessRole,
+        iamTempAccess: iamTempAccess,
+        firstModuleGroup: firstModuleGroup
+      })
+    }).then(Obj => {
+      const rawIAM                = Obj.rawIAM 
+      res.locals.iamTempAccess    = Obj.iamTempAccess
+      res.locals.iamAccessRole    = Obj.iamAccessRole
+      res.locals.firstModuleGroup = Obj.firstModuleGroup
+      res.locals.iamRoles         = Obj.iamRoles
+
       return Heimdallr.parseIAM(rawIAM, res)
     }).then(IAM => {
       if (_.isUndefined(IAM)) {
@@ -237,7 +286,11 @@ class Heimdallr {
   }
 
   static parseIAM (rawIAM, res) {
-    const modules = res.locals.modules
+    const modules          = res.locals.modules
+    const iamTempAccess    = res.locals.iamTempAccess
+    const iamAccessRole    = res.locals.iamAccessRole
+    const firstModuleGroup = res.locals.firstModuleGroup
+
     if (_.isUndefined(rawIAM)) {
       return Promise.resolve()
     }
@@ -285,14 +338,71 @@ class Heimdallr {
           })
         }
 
-        for (let _IAM of rawIAM) {
+        let rawIAMCollection = []
+        if (!_.isUndefined(iamTempAccess) && !IAM.superuser) {
+          iamTempAccess.map((item, index) => {
+            const accessRoleId = JSON.parse(item.access_role_id)
+            const acessRoleAppId = item.app_id
+  
+            if (!_.isUndefined(accessRoleId) && _.isArray(accessRoleId)) {
+              let _obj_access = {
+                app_id: acessRoleAppId,
+                access: [] 
+              }
+              
+              const accessRole = iamAccessRole.filter(x => {
+                return accessRoleId.indexOf(x.id) >= 0
+              })
+  
+              if (!_.isUndefined(accessRole)) {
+                accessRole.map(xAccess => {
+                  JSON.parse(xAccess.access).map(xRecord => {
+                    _obj_access.access.push([xRecord[0], xRecord[1]])
+                  })
+                })
+              }
+  
+              _obj_access.access = JSON.stringify(_obj_access.access)
+              rawIAMCollection.push(_obj_access)
+            }
+          })
+        }
+
+        let _tempRaw = [];
+        rawIAM.map(xRaw => {
+          const _find = rawIAMCollection.find(x => x.app_id === xRaw.app_id)
+          if (!_.isUndefined(_find)) {
+            const access = JSON.parse(xRaw.access).concat(JSON.parse(_find.access))
+            xRaw.access = JSON.stringify(access)
+          }
+
+          _tempRaw.push(xRaw)
+        })
+
+        for (let _IAM of _tempRaw) {
           const appId = _IAM.app_id
           let access
 
           try {
             access = JSON.parse(_IAM.access)
-          } catch (e) {}
+            if (_.isArray(access)) {
+              if (!_.isUndefined(firstModuleGroup) && !_.isUndefined(firstModuleGroup[0])) {
+                let _access_to_group = []
+                const _find_app = res.locals.apps.find(x => x.identifier === appId)
 
+                JSON.parse(firstModuleGroup[0].modules).map((moduleId, index) => {
+                  if (!_.isUndefined(_find_app)) {
+                    const _modules = JSON.parse(_find_app.modules)
+                    if (_modules.indexOf(moduleId) >= 0) {
+                      _access_to_group.push([moduleId, 1])
+                    }
+                  }
+                })
+
+                access = access.concat(_access_to_group)
+              }
+            }
+          } catch (e) {}
           if (access.length > 0) {
             const accessTmp = {
               appId: appId,
