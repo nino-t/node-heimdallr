@@ -164,6 +164,16 @@ class Heimdallr {
   }
 
   static access (req, res, next) {
+    const headers = req.headers
+    if (!req.cookies._am && !_.isUndefined(headers['x-url']) && (res.locals.appId).indexOf('ads')) {
+      res.cookie('_am', res.locals.identity.token, {
+        maxAge: (3600 * 24) * 1000,
+        httpOnly: true
+      })
+
+      return res.redirect(res.locals.Utils.Url.app('/accounts/login'))
+    }
+
     const __config = Heimdallr.__heimdallrConfig(req, res)
     if (__config.whitelist.indexOf(req.path) >= 0) {
       return next()
